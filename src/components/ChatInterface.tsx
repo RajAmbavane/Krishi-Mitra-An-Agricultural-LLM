@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { toast } from "sonner";
 interface Message {
   role: "user" | "assistant";
   content: string;
-  sources?: any[];
+  sources?: any; // Changed from any[] to any to match Json type from Supabase
 }
 
 interface Conversation {
@@ -102,6 +101,7 @@ const ChatInterface = () => {
       if (error) throw error;
       
       if (data) {
+        // Adjust the mapping to ensure sources is properly handled
         const formattedMessages = data.map(msg => ([
           {
             role: "user" as const,
@@ -110,7 +110,7 @@ const ChatInterface = () => {
           {
             role: "assistant" as const,
             content: msg.assistant_response,
-            sources: msg.sources
+            sources: msg.sources || [] // Ensure sources is always an array or undefined
           }
         ])).flat();
         
@@ -183,7 +183,7 @@ const ChatInterface = () => {
   };
 
   // Save message to database
-  const saveMessage = async (userMessage: string, assistantResponse: string, sources: any[]) => {
+  const saveMessage = async (userMessage: string, assistantResponse: string, sources: any) => {
     if (!currentConversationId || !user) return;
     
     try {
@@ -214,7 +214,7 @@ const ChatInterface = () => {
           conversation_id: currentConversationId,
           user_message: userMessage,
           assistant_response: assistantResponse,
-          sources: sources || null
+          sources: sources || null // Ensure null if sources is undefined
         });
         
       if (error) throw error;
