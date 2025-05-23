@@ -3,7 +3,7 @@ import { Wheat } from "lucide-react";
 
 export const AgriculturalLoader = ({ size = 24, className = "" }) => {
   return (
-    <div className={`flex items-center space-x-2 ${className}`}>
+    <div className={`flex items-center space-x-3 ${className}`}>
       <Wheat 
         size={size} 
         className="animate-pulse text-green-600" 
