@@ -7,6 +7,13 @@ import { toast } from "sonner";
 import { AgriculturalLoader } from "@/components/ui/agricultural-loader";
 import { MessageBubble } from "@/components/ui/message-bubble";
 import { QuickSuggestionCard } from "@/components/ui/quick-suggestion-card";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 
 interface Message {
   role: "user" | "assistant";
@@ -26,6 +33,7 @@ const ChatInterface = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [user, setUser] = useState<any>(null);
@@ -324,101 +332,127 @@ const ChatInterface = () => {
     });
   };
 
+  // Sidebar content component for reuse
+  const SidebarContent = () => (
+    <div className="h-full bg-gradient-to-b from-green-800 to-green-900 text-white p-6 overflow-y-auto">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-xl font-bold flex items-center">
+            <Wheat className="mr-2" size={20} />
+            Conversations
+          </h2>
+          <p className="text-green-200 text-sm mt-1">Your farming discussions</p>
+        </div>
+        <Button 
+          variant="ghost" 
+          className="p-2 text-white hover:bg-green-700 rounded-full transition-all duration-200 hover:scale-105"
+          onClick={createNewConversation}
+        >
+          <Plus size={18} />
+        </Button>
+      </div>
+      
+      <div className="space-y-3">
+        {conversations.map((conv) => (
+          <div
+            key={conv.id}
+            className={`p-4 rounded-xl cursor-pointer flex justify-between items-center transition-all duration-200 ${
+              currentConversationId === conv.id 
+                ? "bg-green-700 shadow-lg border border-green-600 transform scale-[1.02]" 
+                : "hover:bg-green-700/50 border border-transparent hover:scale-[1.01]"
+            }`}
+          >
+            <div
+              className="flex-1 truncate"
+              onClick={() => {
+                loadConversation(conv.id);
+                setDrawerOpen(false);
+              }}
+            >
+              <div className="font-semibold truncate text-white text-sm">
+                {conv.title || "New Conversation"}
+              </div>
+              <div className="text-xs text-green-200 mt-1 flex items-center">
+                <Leaf size={12} className="mr-1" />
+                {formatDate(conv.created_at)}
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="opacity-70 hover:opacity-100 hover:bg-red-500/20 transition-all duration-200 ml-2 h-8 w-8"
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteConversation(conv.id);
+              }}
+            >
+              <Trash2 size={14} />
+            </Button>
+          </div>
+        ))}
+        
+        {conversations.length === 0 && (
+          <div className="text-center text-green-200 py-8">
+            <Wheat size={40} className="mx-auto mb-3 opacity-50" />
+            <p className="text-base font-medium">No conversations yet</p>
+            <p className="text-xs mt-2 opacity-80">Start by asking about farming!</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-green-100">
-      {/* Enhanced Sidebar with better padding */}
-      <div className="w-80 bg-gradient-to-b from-green-800 to-green-900 text-white p-8 overflow-y-auto hidden md:block shadow-2xl">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h2 className="text-2xl font-bold flex items-center">
-              <Wheat className="mr-3" size={24} />
-              Conversations
-            </h2>
-            <p className="text-green-200 text-sm mt-2">Your farming discussions</p>
-          </div>
-          <Button 
-            variant="ghost" 
-            className="p-3 text-white hover:bg-green-700 rounded-full transition-all duration-200 hover:scale-105"
-            onClick={createNewConversation}
-          >
-            <Plus size={22} />
-          </Button>
-        </div>
-        
-        <div className="space-y-4">
-          {conversations.map((conv) => (
-            <div
-              key={conv.id}
-              className={`p-5 rounded-2xl cursor-pointer flex justify-between items-center transition-all duration-200 ${
-                currentConversationId === conv.id 
-                  ? "bg-green-700 shadow-xl border border-green-600 transform scale-[1.02]" 
-                  : "hover:bg-green-700/50 border border-transparent hover:scale-[1.01]"
-              }`}
-            >
-              <div
-                className="flex-1 truncate"
-                onClick={() => loadConversation(conv.id)}
-              >
-                <div className="font-semibold truncate text-white text-base">
-                  {conv.title || "New Conversation"}
-                </div>
-                <div className="text-sm text-green-200 mt-2 flex items-center">
-                  <Leaf size={14} className="mr-2" />
-                  {formatDate(conv.created_at)}
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="opacity-70 hover:opacity-100 hover:bg-red-500/20 transition-all duration-200 ml-3"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteConversation(conv.id);
-                }}
-              >
-                <Trash2 size={18} />
-              </Button>
-            </div>
-          ))}
-          
-          {conversations.length === 0 && (
-            <div className="text-center text-green-200 py-12">
-              <Wheat size={56} className="mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">No conversations yet</p>
-              <p className="text-sm mt-3 opacity-80">Start by asking about farming!</p>
-            </div>
-          )}
-        </div>
+      {/* Desktop Sidebar */}
+      <div className="w-80 hidden lg:block shadow-2xl">
+        <SidebarContent />
       </div>
 
-      {/* Main chat area with enhanced padding */}
+      {/* Mobile Drawer */}
+      <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <DrawerContent className="h-[85vh]">
+          <DrawerHeader>
+            <DrawerTitle className="flex items-center">
+              <Wheat className="mr-2" size={20} />
+              Conversations
+            </DrawerTitle>
+          </DrawerHeader>
+          <div className="flex-1 overflow-hidden">
+            <SidebarContent />
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Main chat area */}
       <div className="flex-1 flex flex-col max-h-screen overflow-hidden">
-        {/* Enhanced Chat header with better spacing */}
-        <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-8 shadow-xl">
+        {/* Enhanced Chat header */}
+        <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-6 shadow-xl">
           <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-6">
-              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center shadow-lg">
-                <Wheat size={28} className="text-white" />
+            <div className="flex items-center space-x-4">
+              {/* Mobile menu button */}
+              <Button
+                variant="ghost"
+                className="lg:hidden text-white hover:bg-green-700 rounded-xl p-2"
+                onClick={() => setDrawerOpen(true)}
+              >
+                <Menu size={20} />
+              </Button>
+              
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shadow-lg">
+                <Wheat size={24} className="text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold">KRISHI MITRA</h1>
-                <p className="text-green-100 text-base mt-1">Your Agricultural Assistant</p>
+                <h1 className="text-2xl font-bold">KRISHI MITRA</h1>
+                <p className="text-green-100 text-sm mt-1">Your Agricultural Assistant</p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                className="md:hidden text-white hover:bg-green-700 rounded-xl p-3"
-                onClick={() => toast("Mobile menu not implemented yet")}
-              >
-                <Menu size={22} />
-              </Button>
-              
+            <div className="flex items-center space-x-3">
               {user ? (
                 <Button
                   variant="outline"
-                  className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-green-700 transition-all duration-200 px-6 py-2 font-medium"
+                  className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-green-700 transition-all duration-200 px-4 py-2 font-medium"
                   onClick={async () => {
                     await supabase.auth.signOut();
                     toast.success("Signed out successfully");
@@ -429,7 +463,7 @@ const ChatInterface = () => {
               ) : (
                 <Button
                   variant="outline"
-                  className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-green-700 transition-all duration-200 px-6 py-2 font-medium"
+                  className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-green-700 transition-all duration-200 px-4 py-2 font-medium"
                   onClick={() => window.location.href = "/auth"}
                 >
                   Sign In
@@ -442,7 +476,7 @@ const ChatInterface = () => {
         {/* Enhanced Chat messages with better spacing */}
         <div 
           ref={chatContainerRef} 
-          className="flex-1 p-8 overflow-y-auto"
+          className="flex-1 p-6 overflow-y-auto"
         >
           {/* Enhanced Welcome message */}
           {messages.length === 0 && (
@@ -510,7 +544,7 @@ const ChatInterface = () => {
         </div>
         
         {/* Enhanced Input area with better padding */}
-        <div className="p-8 border-t border-green-200 bg-white/90 backdrop-blur-sm">
+        <div className="p-6 border-t border-green-200 bg-white/90 backdrop-blur-sm">
           {user ? (
             <form
               onSubmit={(e) => {
