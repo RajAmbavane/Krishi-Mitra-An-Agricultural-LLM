@@ -2,8 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Send, Trash2, Plus } from "lucide-react";
+import { Send, Trash2, Plus, Menu, Wheat, Leaf, Tractor, Crop } from "lucide-react";
 import { toast } from "sonner";
+import { AgriculturalLoader } from "@/components/ui/agricultural-loader";
+import { MessageBubble } from "@/components/ui/message-bubble";
+import { QuickSuggestionCard } from "@/components/ui/quick-suggestion-card";
 
 interface Message {
   role: "user" | "assistant";
@@ -27,12 +30,32 @@ const ChatInterface = () => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [user, setUser] = useState<any>(null);
 
-  // Agriculture-related quick suggestions
+  // Enhanced agriculture-related quick suggestions with better categorization
   const quickSuggestions = [
-    "What crops are suitable for sandy soil?",
-    "How to prevent pest infestation in wheat?",
-    "Organic fertilizers for tomatoes",
-    "Government schemes for small farmers"
+    {
+      icon: <Wheat className="w-5 h-5 text-green-600" />,
+      title: "Crop Guidance",
+      description: "What crops are suitable for sandy soil?",
+      query: "What crops are suitable for sandy soil?"
+    },
+    {
+      icon: <Leaf className="w-5 h-5 text-green-600" />,
+      title: "Pest Control",
+      description: "How to prevent pest infestation in wheat?",
+      query: "How to prevent pest infestation in wheat?"
+    },
+    {
+      icon: <Tractor className="w-5 h-5 text-green-600" />,
+      title: "Organic Farming",
+      description: "Organic fertilizers for tomatoes",
+      query: "Organic fertilizers for tomatoes"
+    },
+    {
+      icon: <Crop className="w-5 h-5 text-green-600" />,
+      title: "Government Schemes",
+      description: "Government schemes for small farmers",
+      query: "Government schemes for small farmers"
+    }
   ];
 
   // Check authentication status
@@ -295,54 +318,64 @@ const ChatInterface = () => {
   }, [messages]);
 
   // Handle quick suggestion click
-  const handleSuggestionClick = (suggestion: string) => {
-    setInput(suggestion);
+  const handleSuggestionClick = (query: string) => {
+    setInput(query);
   };
   
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   return (
-    <div className="flex h-screen bg-green-50">
-      {/* Sidebar for conversations */}
-      <div className="w-64 bg-green-700 text-white p-4 overflow-y-auto hidden md:block">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Conversations</h2>
+    <div className="flex h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-green-100">
+      {/* Enhanced Sidebar */}
+      <div className="w-72 bg-gradient-to-b from-green-800 to-green-900 text-white p-6 overflow-y-auto hidden md:block shadow-2xl">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-xl font-bold flex items-center">
+              <Wheat className="mr-2" size={20} />
+              Conversations
+            </h2>
+            <p className="text-green-200 text-sm mt-1">Your farming discussions</p>
+          </div>
           <Button 
             variant="ghost" 
-            className="p-2 text-white hover:bg-green-600 rounded-full"
+            className="p-2 text-white hover:bg-green-700 rounded-full transition-colors"
             onClick={createNewConversation}
           >
             <Plus size={20} />
           </Button>
         </div>
         
-        <div className="space-y-2">
+        <div className="space-y-3">
           {conversations.map((conv) => (
             <div
               key={conv.id}
-              className={`p-2 rounded-lg cursor-pointer flex justify-between items-center ${
+              className={`p-4 rounded-xl cursor-pointer flex justify-between items-center transition-all ${
                 currentConversationId === conv.id 
-                  ? "bg-green-600" 
-                  : "hover:bg-green-600/50"
+                  ? "bg-green-700 shadow-lg border border-green-600" 
+                  : "hover:bg-green-700/50 border border-transparent"
               }`}
             >
               <div
                 className="flex-1 truncate"
                 onClick={() => loadConversation(conv.id)}
               >
-                <div className="font-medium truncate">
+                <div className="font-medium truncate text-white">
                   {conv.title || "New Conversation"}
                 </div>
-                <div className="text-xs opacity-75">
+                <div className="text-xs text-green-200 mt-1 flex items-center">
+                  <Leaf size={12} className="mr-1" />
                   {formatDate(conv.created_at)}
                 </div>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="opacity-70 hover:opacity-100 hover:bg-red-500/20"
+                className="opacity-70 hover:opacity-100 hover:bg-red-500/20 transition-all"
                 onClick={(e) => {
                   e.stopPropagation();
                   deleteConversation(conv.id);
@@ -354,8 +387,10 @@ const ChatInterface = () => {
           ))}
           
           {conversations.length === 0 && (
-            <div className="text-center text-green-200 py-4">
-              No conversations yet
+            <div className="text-center text-green-200 py-8">
+              <Wheat size={48} className="mx-auto mb-3 opacity-50" />
+              <p>No conversations yet</p>
+              <p className="text-sm mt-2">Start by asking about farming!</p>
             </div>
           )}
         </div>
@@ -363,159 +398,171 @@ const ChatInterface = () => {
 
       {/* Main chat area */}
       <div className="flex-1 flex flex-col max-h-screen overflow-hidden">
-        {/* Chat header */}
-        <div className="bg-green-600 text-white p-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">KRISHI MITRA</h1>
-          <div className="flex items-center space-x-2">
-            {/* Mobile menu button for conversations */}
-            <Button
-              variant="ghost"
-              className="md:hidden text-white hover:bg-green-700"
-              onClick={() => {
-                // This would toggle the mobile menu in a real implementation
-                toast("Mobile menu not implemented yet");
-              }}
-            >
-              Conversations
-            </Button>
+        {/* Enhanced Chat header */}
+        <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-6 shadow-lg">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                <Wheat size={24} className="text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">KRISHI MITRA</h1>
+                <p className="text-green-100 text-sm">Your Agricultural Assistant</p>
+              </div>
+            </div>
             
-            {user ? (
+            <div className="flex items-center space-x-3">
+              {/* Mobile menu button */}
               <Button
-                variant="outline"
-                className="bg-transparent border-white text-white hover:bg-green-700"
-                onClick={async () => {
-                  await supabase.auth.signOut();
-                  toast.success("Signed out successfully");
-                }}
+                variant="ghost"
+                className="md:hidden text-white hover:bg-green-700 rounded-lg"
+                onClick={() => toast("Mobile menu not implemented yet")}
               >
-                Sign Out
+                <Menu size={20} />
               </Button>
-            ) : (
-              <Button
-                variant="outline"
-                className="bg-transparent border-white text-white hover:bg-green-700"
-                onClick={() => window.location.href = "/auth"}
-              >
-                Sign In
-              </Button>
-            )}
+              
+              {user ? (
+                <Button
+                  variant="outline"
+                  className="bg-transparent border-white text-white hover:bg-white hover:text-green-700 transition-colors"
+                  onClick={async () => {
+                    await supabase.auth.signOut();
+                    toast.success("Signed out successfully");
+                  }}
+                >
+                  Sign Out
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="bg-transparent border-white text-white hover:bg-white hover:text-green-700 transition-colors"
+                  onClick={() => window.location.href = "/auth"}
+                >
+                  Sign In
+                </Button>
+              )}
+            </div>
           </div>
         </div>
         
-        {/* Chat messages */}
+        {/* Enhanced Chat messages */}
         <div 
           ref={chatContainerRef} 
-          className="flex-1 p-4 overflow-y-auto space-y-4"
+          className="flex-1 p-6 overflow-y-auto"
         >
-          {/* Welcome message if no messages */}
+          {/* Enhanced Welcome message */}
           {messages.length === 0 && (
-            <div className="text-center my-8">
-              <h2 className="text-2xl font-bold text-green-700 mb-4">
-                Welcome to Krishi Mitra! 🌿
+            <div className="text-center my-12">
+              <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Wheat size={48} className="text-green-600" />
+              </div>
+              <h2 className="text-3xl font-bold text-green-800 mb-4">
+                Welcome to Krishi Mitra! 🌾
               </h2>
-              <p className="text-gray-600 max-w-md mx-auto">
-                Your agricultural assistance chatbot. Ask any questions about farming,
-                crops, soil management, government schemes, or agricultural practices.
+              <p className="text-gray-600 max-w-2xl mx-auto text-lg leading-relaxed">
+                Your intelligent agricultural companion. Get expert advice on farming,
+                crop management, soil health, pest control, and government agricultural schemes.
               </p>
-              <div className="mt-6 flex flex-wrap gap-2 justify-center">
-                {quickSuggestions.map((suggestion, index) => (
-                  <button
-                    key={index}
-                    className="bg-green-100 hover:bg-green-200 text-green-800 px-3 py-2 rounded-full text-sm"
-                    onClick={() => handleSuggestionClick(suggestion)}
-                  >
-                    {suggestion}
-                  </button>
-                ))}
+              
+              {/* Enhanced quick suggestions */}
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold text-green-700 mb-4">
+                  Popular Topics
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+                  {quickSuggestions.map((suggestion, index) => (
+                    <QuickSuggestionCard
+                      key={index}
+                      icon={suggestion.icon}
+                      title={suggestion.title}
+                      description={suggestion.description}
+                      onClick={() => handleSuggestionClick(suggestion.query)}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           )}
           
-          {/* Chat messages */}
+          {/* Chat messages using enhanced components */}
           {messages.map((message, index) => (
-            <div
+            <MessageBubble
               key={index}
-              className={`${
-                message.role === "user" 
-                  ? "bg-green-200 ml-auto mr-2" 
-                  : "bg-white mr-auto ml-2"
-              } max-w-3xl rounded-lg p-4 shadow`}
+              role={message.role}
+              sources={message.sources}
             >
-              <div className="whitespace-pre-line">{message.content}</div>
-              
-              {/* Display sources if available */}
-              {message.sources && message.sources.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-gray-200">
-                  <p className="text-xs font-medium text-gray-500">Sources:</p>
-                  <div className="mt-1 space-y-1">
-                    {message.sources.map((source, idx) => (
-                      <div key={idx} className="text-xs text-gray-600">
-                        <a 
-                          href={source.url} 
-                          className="text-green-700 hover:underline" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                        >
-                          {source.title || "Source " + (idx + 1)}
-                        </a>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+              {message.content}
+            </MessageBubble>
           ))}
           
-          {/* Loading indicator */}
+          {/* Enhanced Loading indicator */}
           {isLoading && (
-            <div className="bg-white max-w-3xl rounded-lg p-4 shadow mr-auto ml-2 flex items-center space-x-2">
-              <Loader2 className="h-4 w-4 animate-spin text-green-600" />
-              <p>Krishi Mitra is thinking...</p>
+            <div className="flex justify-start mb-4">
+              <div className="bg-white border border-green-100 rounded-2xl p-6 shadow-lg mr-12">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <Leaf size={18} className="text-green-600" />
+                  </div>
+                  <div>
+                    <AgriculturalLoader size={20} />
+                    <p className="text-green-700 font-medium mt-2">Krishi Mitra is analyzing...</p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           
-          {/* Auto-scroll reference */}
           <div ref={messagesEndRef} />
         </div>
         
-        {/* Input area */}
-        <div className="p-4 border-t border-gray-200 bg-white">
+        {/* Enhanced Input area */}
+        <div className="p-6 border-t border-green-200 bg-white/80 backdrop-blur-sm">
           {user ? (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleSendMessage();
               }}
-              className="flex space-x-2"
+              className="flex space-x-4"
             >
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about crops, farming techniques, or government schemes..."
-                className="flex-1 focus-visible:ring-green-500"
-                disabled={isLoading}
-              />
+              <div className="flex-1 relative">
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask about crops, farming techniques, government schemes, or any agricultural question..."
+                  className="pr-12 h-12 border-green-300 focus-visible:ring-green-500 bg-white shadow-sm text-base"
+                  disabled={isLoading}
+                />
+                <Leaf className="absolute right-3 top-3 h-6 w-6 text-green-400" />
+              </div>
               <Button 
                 type="submit"
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 h-12 px-6 shadow-lg transition-all"
                 disabled={isLoading || !input.trim()}
               >
                 {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <AgriculturalLoader size={18} />
                 ) : (
-                  <Send size={18} />
+                  <>
+                    <Send size={18} className="mr-2" />
+                    Send
+                  </>
                 )}
               </Button>
             </form>
           ) : (
-            <div className="text-center py-2">
-              <p className="text-gray-600 mb-2">
+            <div className="text-center py-6">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Wheat size={32} className="text-green-600" />
+              </div>
+              <p className="text-gray-600 mb-4 text-lg">
                 Sign in to start chatting with Krishi Mitra
               </p>
               <Button
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-lg"
                 onClick={() => window.location.href = "/auth"}
               >
+                <Leaf size={18} className="mr-2" />
                 Sign In
               </Button>
             </div>
