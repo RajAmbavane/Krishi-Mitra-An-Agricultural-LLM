@@ -1,0 +1,13 @@
+# Make GitHub Linguist focus on backend/LLM code by excluding frontend assets from language stats.
+src/** linguist-vendored
+public/** linguist-vendored
+
+# Frontend and build tooling
+*.ts linguist-vendored
+*.tsx linguist-vendored
+*.css linguist-vendored
+*.html linguist-vendored
+
+# Locks and generated artifacts
+package-lock.json linguist-vendored
+bun.lockb linguist-vendored
