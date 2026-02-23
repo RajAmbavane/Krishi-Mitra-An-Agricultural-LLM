@@ -1,55 +1,86 @@
-# Harit Krishi Mitra
+<div align="center">
 
-AI-powered agriculture assistant for Indian farmers with:
-- React + Vite frontend
-- FastAPI backend with local Llama (GGUF via `llama-cpp-python`)
-- Supabase auth and chat persistence
-- Optional SearXNG retrieval and weather enrichment
+# 🌾 Harit Krishi Mitra
 
-## Features
-- Conversational crop guidance (pest, disease, irrigation, soil, market, schemes)
-- Response hardening for stale/late backend replies
-- Conditional helpline behavior (only when relevant)
-- Conversation history with Supabase
+### *AI-Powered Agriculture Assistant for Indian Farmers*
 
-## Tech Stack
-- Frontend: React, TypeScript, Vite, Tailwind, shadcn/ui
-- Backend: FastAPI, llama-cpp-python, requests
-- Data/Auth: Supabase
-- Retrieval: SearXNG (optional but recommended)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 
-## Repository Structure
-```text
-.
-|-- backend/
-|   |-- main.py
-|   |-- prompt_builder.py
-|   |-- search_engine.py
-|   |-- weather_service.py
-|   `-- llama_runner.py
-|-- src/
-|-- finetuning/
-|-- supabase/
-`-- README.md
+> Empowering Indian farmers with conversational AI guidance on crops, pests, irrigation, soil health, market prices, and government schemes — powered by a local Llama model with optional RAG retrieval.
+
+</div>
+
+---
+
+## ✨ Features
+
+| Feature | Description |
+|---|---|
+| 🌱 **Crop Guidance** | Pest control, disease diagnosis, irrigation, soil management |
+| 📈 **Market & Schemes** | Real-time market intel and government scheme awareness |
+| 🔒 **Auth & Persistence** | Supabase-backed authentication and full chat history |
+| 🔍 **RAG Retrieval** | Optional SearXNG integration for grounded, up-to-date answers |
+| 🌦️ **Weather Enrichment** | Localized weather context for farming decisions |
+| 🛡️ **Response Hardening** | Stale/late backend reply protection for reliability |
+| 📞 **Smart Helplines** | Conditional helpline suggestions only when truly relevant |
+
+---
+
+## 🏗️ Tech Stack
+
+```
+Frontend      →  React · TypeScript · Vite · Tailwind CSS · shadcn/ui
+Backend       →  FastAPI · llama-cpp-python · Python 3.10+
+Auth & Data   →  Supabase
+Retrieval     →  SearXNG (optional but recommended)
 ```
 
-## Prerequisites
-- Node.js 18+
-- Python 3.10+
-- A GGUF model file compatible with `llama-cpp-python`
-- Supabase project (URL + anon key)
-- Optional: local SearXNG instance
+---
 
-## Environment Variables
+## 📁 Repository Structure
 
-### Frontend (`.env.local`)
+```text
+.
+├── backend/
+│   ├── main.py              # FastAPI app & routes
+│   ├── prompt_builder.py    # Prompt construction logic
+│   ├── search_engine.py     # SearXNG RAG integration
+│   ├── weather_service.py   # Weather enrichment
+│   └── llama_runner.py      # Local Llama model loader
+├── src/                     # React frontend source
+├── finetuning/              # Fine-tuning scripts & data
+├── supabase/                # DB schema & migrations
+└── README.md
+```
+
+---
+
+## ⚙️ Prerequisites
+
+- **Node.js** 18+
+- **Python** 3.10+
+- A **GGUF model file** compatible with `llama-cpp-python`
+- A **Supabase** project (URL + anon key)
+- *(Optional)* A local **SearXNG** instance
+
+---
+
+## 🔑 Environment Variables
+
+### Frontend — `.env.local`
+
 ```bash
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_BACKEND_URL=http://localhost:8000
 ```
 
-### Backend (`backend/.env`)
+### Backend — `backend/.env`
+
 ```bash
 # Optional if model is at workspace root with this filename:
 # Llama-3.2-3B-Instruct-Q4_K_M.gguf
@@ -60,14 +91,17 @@ SEARXNG_URLS=http://127.0.0.1:8888
 SEARXNG_BACKOFF_SECONDS=60
 ```
 
-## RAG Setup (SearXNG)
+---
+
+## 🔍 RAG Setup (SearXNG)
 
 RAG is enabled through `backend/search_engine.py` and used by `POST /ask`.
 
-### Option A: Use your local `searxng` folder
-If you already have a local SearXNG setup (as in this workspace), start it and ensure it serves on `http://127.0.0.1:8888`.
+### Option A — Use your local `searxng` folder
+If you already have a local SearXNG setup, start it and ensure it serves on `http://127.0.0.1:8888`.
 
-### Option B: Run SearXNG via Docker
+### Option B — Run SearXNG via Docker
+
 ```bash
 docker run --rm -d --name searxng -p 8888:8080 searxng/searxng
 ```
@@ -77,82 +111,139 @@ Then set:
 SEARXNG_URLS=http://127.0.0.1:8888
 ```
 
-Validate:
-- Open `http://127.0.0.1:8888/search?q=health&format=json`
-- API health endpoint: `GET http://localhost:8000/health/rag`
+**Validate your setup:**
+```
+# Test search API
+http://127.0.0.1:8888/search?q=health&format=json
 
-If SearXNG is down, app still answers using non-RAG path.
+# RAG health endpoint
+GET http://localhost:8000/health/rag
+```
 
-## Model Setup (Llama 3.2 3B and Fine-tuned Models)
+> ℹ️ If SearXNG is unavailable, the app automatically falls back to the non-RAG path.
 
-Backend loads model from:
-1. `LLAMA_MODEL_PATH` (preferred), or
-2. workspace default file: `Llama-3.2-3B-Instruct-Q4_K_M.gguf`
+---
 
-### Base model setup
-1. Download your GGUF model file.
-2. Put it on disk (any path).
-3. Set `LLAMA_MODEL_PATH` in `backend/.env` to that full path.
+## 🤖 Model Setup
 
-Example:
+The backend loads the model from:
+1. `LLAMA_MODEL_PATH` *(preferred)*, or
+2. Workspace default: `Llama-3.2-3B-Instruct-Q4_K_M.gguf`
+
+### Base Model
+
 ```bash
+# 1. Download your GGUF model file
+# 2. Place it anywhere on disk
+# 3. Point the env var to it
 LLAMA_MODEL_PATH=D:/models/Llama-3.2-3B-Instruct-Q4_K_M.gguf
 ```
 
-### Fine-tuned model setup
-This backend expects a GGUF model path. So for fine-tuning artifacts:
-1. Merge/apply your fine-tuned adapter into a final model checkpoint.
-2. Convert/quantize to GGUF (if needed).
-3. Point `LLAMA_MODEL_PATH` to that final GGUF.
+### Fine-tuned Model
 
-Example:
 ```bash
+# After merging adapter + converting to GGUF:
 LLAMA_MODEL_PATH=D:/models/krishi-mitra-finetuned-q4_k_m.gguf
 ```
 
-Note: raw LoRA/adapter files are not loaded directly by current `llama_runner.py`; it loads a single GGUF file.
+> ⚠️ Raw LoRA/adapter files are not loaded directly. `llama_runner.py` expects a single merged GGUF file. See `finetuning/README.md` for the full training workflow.
 
-For reproducible training workflow, see:
-- `finetuning/README.md`
-- `finetuning/data/DATASET_SCHEMA.md`
-- `finetuning/scripts/*`
+---
 
-## Local Development
+## 🚀 Local Development
 
 ### 1. Frontend
+
 ```bash
 npm install
 npm run dev
+# Runs on http://localhost:5173
 ```
-Frontend runs on Vite default (`http://localhost:5173` unless changed).
 
 ### 2. Backend
+
 ```bash
 cd backend
 python -m venv venv
-venv\Scripts\activate
+venv\Scripts\activate       # Windows
+# source venv/bin/activate  # macOS/Linux
+
 pip install -r requirements.txt
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 3. Quick end-to-end check
-1. Confirm backend is up: `http://localhost:8000/health/rag`
-2. Start frontend: `npm run dev`
-3. Ask a query in UI and verify:
-   - direct answer is returned
-   - `sources` appear when SearXNG is reachable
+### 3. End-to-End Check
 
-## API Endpoints
-- `POST /ask` : main chat endpoint
-- `GET /health/rag` : retrieval health check
+```
+✅ Backend health  →  http://localhost:8000/health/rag
+✅ Frontend        →  npm run dev
+✅ Test a query    →  Verify answer + sources in UI
+```
 
-## Quality Checks
+---
+
+## 📡 API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/ask` | Main chat endpoint |
+| `GET` | `/health/rag` | Retrieval health check |
+
+---
+
+## 🧪 Quality Checks
+
 ```bash
 npm run lint
 npm run build
 ```
 
-## Deploy Notes
-- Lock down CORS origins in `backend/main.py` for production.
-- Store secrets in environment variables, never in source.
-- Use HTTPS and authenticated Supabase project keys.
+---
+
+## 🌐 Deploy Notes
+
+- 🔒 Lock down CORS origins in `backend/main.py` for production
+- 🔑 Store all secrets in environment variables — never in source code
+- 🛡️ Use HTTPS and authenticated Supabase project keys
+
+---
+
+## 📚 Further Reading
+
+- [`finetuning/README.md`](finetuning/README.md) — Fine-tuning workflow
+- [`finetuning/data/DATASET_SCHEMA.md`](finetuning/data/DATASET_SCHEMA.md) — Dataset schema
+- [`finetuning/scripts/`](finetuning/scripts/) — Training scripts
+
+---
+
+## 📄 License
+
+```
+MIT License
+
+Copyright (c) 2025 Harit Krishi Mitra Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+---
+
+<div align="center">
+
+</div>
