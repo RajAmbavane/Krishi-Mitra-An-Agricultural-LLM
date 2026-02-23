@@ -156,6 +156,3 @@ npm run build
 - Lock down CORS origins in `backend/main.py` for production.
 - Store secrets in environment variables, never in source.
 - Use HTTPS and authenticated Supabase project keys.
-
-## License
-MIT (see `LICENSE`).
