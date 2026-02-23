@@ -1,0 +1,22 @@
+base_model: "meta-llama/Llama-3.2-3B-Instruct"
+output_dir: "finetuning/checkpoints/krishi-mitra-lora"
+dataset_path: "finetuning/data/processed_train.jsonl"
+
+training:
+  epochs: 3
+  learning_rate: 2e-4
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 8
+  max_seq_length: 2048
+  warmup_ratio: 0.03
+  weight_decay: 0.01
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj

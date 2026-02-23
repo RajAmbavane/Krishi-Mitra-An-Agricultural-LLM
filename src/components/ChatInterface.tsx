@@ -7,13 +7,7 @@ import { toast } from "sonner";
 import { AgriculturalLoader } from "@/components/ui/agricultural-loader";
 import { MessageBubble } from "@/components/ui/message-bubble";
 import { QuickSuggestionCard } from "@/components/ui/quick-suggestion-card";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 
 interface Message {
   role: "user" | "assistant";
@@ -27,6 +21,23 @@ interface Conversation {
   created_at: string;
 }
 
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const buildLocalFallbackAnswer = (question: string) => {
+  const q = question.trim();
+  return (
+    "I could not reach the backend service, but I can still help with a structured next step.\n\n" +
+    "What to do now:\n" +
+    `- Your question: ${q}\n` +
+    "- Tell me crop, growth stage, district/state, and the exact issue.\n" +
+    "- If this is pest or disease: share visible symptoms and when they started.\n" +
+    "- If this is irrigation: share soil type and last irrigation date.\n" +
+    "- If this is weather/market: share location and crop name."
+  );
+};
+
 const ChatInterface = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -36,6 +47,8 @@ const ChatInterface = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const activeRequestIdRef = useRef(0);
+  const activeControllerRef = useRef<AbortController | null>(null);
   const [user, setUser] = useState<any>(null);
 
   // Enhanced agriculture-related quick suggestions with better categorization
@@ -154,10 +167,10 @@ const ChatInterface = () => {
   };
 
   // Create a new conversation
-  const createNewConversation = async () => {
+  const createNewConversation = async (): Promise<string | null> => {
     if (!user) {
       toast.error("Please sign in to start a conversation");
-      return;
+      return null;
     }
     
     try {
@@ -173,15 +186,17 @@ const ChatInterface = () => {
       if (error) throw error;
       
       if (data) {
-        setConversations([data, ...conversations]);
+        setConversations((prev) => [data, ...prev]);
         setCurrentConversationId(data.id);
         setMessages([]);
         toast.success("New conversation created");
+        return data.id;
       }
     } catch (error: any) {
       console.error("Error creating conversation:", error);
       toast.error("Failed to create conversation");
     }
+    return null;
   };
 
   // Delete a conversation
@@ -214,31 +229,37 @@ const ChatInterface = () => {
   };
 
   // Save message to database
-  const saveMessage = async (userMessage: string, assistantResponse: string, sources: any) => {
-    if (!currentConversationId || !user) return;
+  const saveMessage = async (
+    conversationId: string,
+    userMessage: string,
+    assistantResponse: string,
+    sources: any,
+    isFirstTurn: boolean
+  ) => {
+    if (!conversationId || !user) return;
     
     try {
-      if (messages.length === 0) {
+      if (isFirstTurn) {
         await supabase
           .from("chat_conversations")
           .update({ 
             title: userMessage.substring(0, 30) + (userMessage.length > 30 ? "..." : ""),
             updated_at: new Date().toISOString() 
           })
-          .eq("id", currentConversationId);
+          .eq("id", conversationId);
           
         fetchConversations();
       } else {
         await supabase
           .from("chat_conversations")
           .update({ updated_at: new Date().toISOString() })
-          .eq("id", currentConversationId);
+          .eq("id", conversationId);
       }
       
       const { error } = await supabase
         .from("chat_messages")
         .insert({
-          conversation_id: currentConversationId,
+          conversation_id: conversationId,
           user_message: userMessage,
           assistant_response: assistantResponse,
           sources: sources || null
@@ -259,59 +280,116 @@ const ChatInterface = () => {
       return;
     }
     
-    // Create a new conversation if none exists
-    if (!currentConversationId) {
-      await createNewConversation();
+    let conversationId = currentConversationId;
+    if (!conversationId) {
+      conversationId = await createNewConversation();
+      if (!conversationId) {
+        toast.error("Could not create conversation. Please try again.");
+        return;
+      }
     }
     
-    const userMessage = input;
+    const userMessage = input.trim();
+    const historySnapshot = messages.map(msg => ({ role: msg.role, content: msg.content }));
     setInput("");
     
     // Add user message to chat
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     
     setIsLoading(true);
-    
+    const requestId = ++activeRequestIdRef.current;
+    activeControllerRef.current?.abort();
+    const controller = new AbortController();
+    activeControllerRef.current = controller;
+
     try {
       // Call API endpoint
-      const response = await fetch("http://localhost:8000/ask", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          question: userMessage,
-          // Include conversation history for context
-          history: messages.map(msg => ({ role: msg.role, content: msg.content }))
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
+      const payload = {
+        question: userMessage,
+        history: historySnapshot
+      };
+
+      let response: Response | null = null;
+      let lastError: unknown = null;
+
+      // Retry once for transient failures before falling back.
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          response = await fetch(`${API_BASE_URL}/ask`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            signal: controller.signal,
+            body: JSON.stringify(payload),
+          });
+          if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+          }
+          break;
+        } catch (err) {
+          lastError = err;
+          if (attempt === 0) {
+            await sleep(1200);
+          }
+        }
       }
-      
+
+      if (!response || !response.ok) {
+        throw lastError || new Error("No response from backend");
+      }
+
       const data = await response.json();
+      if (requestId !== activeRequestIdRef.current) return;
+      const answerText = String(data?.answer || "");
+      const cleanedAnswerText = answerText.replace(/^\s*quick answer\s*:\s*/i, "").trim();
+      const normalizedAnswer = cleanedAnswerText.toLowerCase();
+      const isTransientBackendReply =
+        normalizedAnswer.includes("can't reply now") ||
+        normalizedAnswer.includes("cant reply now") ||
+        normalizedAnswer.includes("no backend type");
+      if (isTransientBackendReply) {
+        throw new Error("Backend returned a transient unavailable reply");
+      }
       
       // Add assistant response to chat
       setMessages((prev) => [
         ...prev,
         { 
           role: "assistant", 
-          content: data.answer, 
+          content: cleanedAnswerText, 
           sources: data.sources 
         },
       ]);
       
       // Save the exchange to the database
-      await saveMessage(userMessage, data.answer, data.sources);
+      await saveMessage(
+        conversationId,
+        userMessage,
+        cleanedAnswerText,
+        data.sources,
+        historySnapshot.length === 0
+      );
     } catch (error) {
+      if (requestId !== activeRequestIdRef.current) return;
+      if ((error as { name?: string })?.name === "AbortError") return;
       console.error("API Error:", error);
-      toast.error("Failed to get a response. Please try again.");
-      
-      // Remove user message if API call fails
-      setMessages((prev) => prev.slice(0, -1));
+      toast.error("Backend unavailable. Showing offline guidance.");
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: buildLocalFallbackAnswer(userMessage),
+          sources: []
+        }
+      ]);
     } finally {
-      setIsLoading(false);
+      if (activeControllerRef.current === controller) {
+        activeControllerRef.current = null;
+      }
+      if (requestId === activeRequestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 

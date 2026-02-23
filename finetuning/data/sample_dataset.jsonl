@@ -1,0 +1,3 @@
+{"instruction":"Give irrigation advice for wheat", "input":"Location: Nashik, Stage: tillering, Soil: loam", "output":"Irrigate based on soil moisture, avoid waterlogging, and prioritize critical stages like crown root initiation and flowering."}
+{"instruction":"How to manage aphids in mustard?", "input":"Symptoms started 5 days ago; mild to moderate spread", "output":"Monitor infestation level, conserve beneficial insects, and apply recommended control only when threshold is crossed."}
+{"instruction":"Explain PM-KISAN scheme briefly", "input":"Farmer from Maharashtra", "output":"PM-KISAN provides income support to eligible farmer families; verify eligibility and apply through official PM-KISAN portal."}
